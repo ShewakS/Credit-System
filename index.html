@@ -3,235 +3,505 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Customer Credit & Payment Management</title>
-  <!-- Desktop-only fixed width; no responsive behavior -->
+  <title>Smart Credit Ledger Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- App container: fixed width for desktop-only use -->
-  <div class="app">
-    <header class="app-header">
-      <h1>Customer Credit & Payment Management</h1>
-      
-      <!-- Top navigation tabs at right corner -->
-      <nav class="tabs" aria-label="Primary">
-        <button class="tab" data-section="dashboard" aria-controls="dashboard">Home</button>
-        <button class="tab" data-section="customers" aria-controls="customers">Customers</button>
-        <button class="tab" data-section="overdue" aria-controls="overdue">Overdue</button>
-        <button class="tab" data-section="summary" aria-controls="summary">Business Summary</button>
-      </nav>
-    </header>
-
-    <main class="sections">
-      <!-- Dashboard: summary cards + customer status table -->
-      <section id="dashboard" class="section active" aria-labelledby="dashboard">
-        <!-- Summary metrics -->
-        <div class="cards">
-          <div class="card">
-            <div class="card-label">Total Customers</div>
-            <div class="card-value" id="totalCustomers">0</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Total Credit Given</div>
-            <div class="card-value" id="totalCreditGiven">0</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Total Overdue Amount</div>
-            <div class="card-value" id="totalOverdueAmount">0</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Total Payments Received</div>
-            <div class="card-value" id="totalPaymentsReceived">0</div>
-          </div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SCL</div>
+        <div>
+          <div class="brand-title">Smart Credit</div>
+          <div class="brand-sub">Ledger System</div>
         </div>
-        
-        <div class="panel">
-          <div class="panel-title">Customer Overview</div>
-          <table class="table" id="dashboardCustomerTable" aria-label="Customer Summary">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Contact</th>
-                <th>Credit Limit</th>
-                <th>Current Balance</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Populated by script.js -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Customers: management table + add/edit modal trigger -->
-      <section id="customers" class="section" aria-labelledby="customers">
-        <h2>Customers</h2>
-        <div class="actions-row">
-          <button class="btn primary" id="btnAddCustomer">Add Customer</button>
-        </div>
-        <table class="table" id="customersTable" aria-label="Customers">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Contact</th>
-              <th>Credit Limit</th>
-              <th>Notes</th>
-              <th>Current Balance</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Populated by script.js -->
-          </tbody>
-        </table>
-      </section>
-
-      <!-- Transactions: record credit or payment -->
-      <section id="transactions" class="section" aria-labelledby="transactions">
-        <h2>Credit & Payment Entry</h2>
-        <div class="subtabs">
-          <button class="subtab active" data-pane="creditPane">Record Credit</button>
-          <button class="subtab" data-pane="paymentPane">Record Payment</button>
-        </div>
-
-        <div id="creditPane" class="pane active" aria-label="Record Credit">
-          <form id="creditForm" class="form" novalidate>
-            <div class="form-row">
-              <label for="creditCustomerSelect">Customer</label>
-              <select id="creditCustomerSelect" required></select>
-            </div>
-            <div class="form-row">
-              <label for="creditAmount">Amount</label>
-              <input type="number" id="creditAmount" min="0" step="0.01" placeholder="0.00" required />
-            </div>
-            <div class="form-row">
-              <label for="creditDueDate">Due Date</label>
-              <input type="date" id="creditDueDate" required />
-            </div>
-            <div class="form-row">
-              <label for="creditNotes">Notes</label>
-              <textarea id="creditNotes" rows="2" placeholder="Optional notes"></textarea>
-            </div>
-            <!-- UI-level warning when exceeding credit limit -->
-            <div id="limitWarning" class="warning" hidden>
-              Warning: This credit exceeds the customer's credit limit.
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn primary">Save Credit</button>
-            </div>
-          </form>
-        </div>
-
-        <div id="paymentPane" class="pane" aria-label="Record Payment">
-          <form id="paymentForm" class="form" novalidate>
-            <div class="form-row">
-              <label for="paymentCustomerSelect">Customer</label>
-              <select id="paymentCustomerSelect" required></select>
-            </div>
-            <div class="form-row">
-              <label for="paymentAmount">Amount</label>
-              <input type="number" id="paymentAmount" min="0" step="0.01" placeholder="0.00" required />
-            </div>
-            <div class="form-row">
-              <label for="paymentDate">Payment Date</label>
-              <input type="date" id="paymentDate" required />
-            </div>
-            <div class="form-row">
-              <label for="paymentNotes">Notes</label>
-              <textarea id="paymentNotes" rows="2" placeholder="Optional notes"></textarea>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn primary">Save Payment</button>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      <!-- Overdue: shows pending dues, due dates, days overdue, reminder status -->
-      <section id="overdue" class="section" aria-labelledby="overdue">
-        <h2>Overdue Management</h2>
-        <table class="table" id="overdueTable" aria-label="Overdue Credits">
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Due Date</th>
-              <th>Days Overdue</th>
-              <th>Outstanding</th>
-              <th>Reminder Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Populated by script.js -->
-          </tbody>
-        </table>
-      </section>
-
-      <!-- Business Summary: overall and per-customer insights -->
-      <section id="summary" class="section" aria-labelledby="summary">
-        <h2>Business Summary</h2>
-        <div class="cards">
-          <div class="card">
-            <div class="card-label">Overall Outstanding</div>
-            <div class="card-value" id="overallOutstanding">0</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Customers With Overdue</div>
-            <div class="card-value" id="customersWithOverdue">0</div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-title">Customer-Level Insights</div>
-          <table class="table" id="summaryTable" aria-label="Customer Insights">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Total Credit</th>
-                <th>Total Payments</th>
-                <th>Current Balance</th>
-                <th>Overdue Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Populated by script.js -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-
-    <!-- Customer Modal: Add/Edit customer details -->
-    <div id="customerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle" hidden>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="customerModalTitle">Add Customer</h3>
-        </div>
-        <form id="customerForm" class="form" novalidate>
-          <input type="hidden" id="customerId" />
-          <div class="form-row">
-            <label for="customerName">Name</label>
-            <input type="text" id="customerName" placeholder="Full name" required />
-          </div>
-          <div class="form-row">
-            <label for="customerContact">Contact Number</label>
-            <input type="text" id="customerContact" placeholder="e.g., 555-1234" required />
-          </div>
-          <div class="form-row">
-            <label for="customerLimit">Credit Limit</label>
-            <input type="number" id="customerLimit" min="0" step="1" placeholder="0" required />
-          </div>
-          <div class="form-row">
-            <label for="customerNotes">Notes</label>
-            <textarea id="customerNotes" rows="2" placeholder="Optional notes"></textarea>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn primary">Save</button>
-            <button type="button" class="btn" id="btnCancelCustomer">Cancel</button>
-          </div>
-        </form>
       </div>
+      <nav class="nav" aria-label="Primary">
+        <button class="nav-link active" data-target="dashboard">Dashboard</button>
+        <button class="nav-link" data-target="customers">Customers</button>
+        <button class="nav-link" data-target="credit">Credit Entry</button>
+        <button class="nav-link" data-target="payments">Payments</button>
+        <button class="nav-link" data-target="overdue">Overdue Tracking</button>
+        <button class="nav-link" data-target="reminders">Reminders</button>
+        <button class="nav-link" data-target="analytics">Analytics</button>
+        <button class="nav-link" data-target="risk">Risk Analysis</button>
+        <button class="nav-link" data-target="ledger">Ledger</button>
+        <button class="nav-link" data-target="settings">Settings</button>
+      </nav>
+    </aside>
+
+    <div class="content">
+      <header class="topbar">
+        <div>
+          <h1>Smart Credit Ledger Management</h1>
+          <p class="muted">Desktop prototype for SME credit, payments, overdue and reminders.</p>
+        </div>
+        <div class="pill">Desktop Mode • Prototype</div>
+      </header>
+
+      <main class="main">
+        <!-- Dashboard -->
+        <section id="dashboard" class="section active" aria-labelledby="dashboard-title">
+          <div class="section-head">
+            <div>
+              <h2 id="dashboard-title">Dashboard</h2>
+              <p class="muted">Overview of customers, credits, payments, and recovery trends.</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn ghost" id="simulateDay">Simulate +1 Day</button>
+              <button class="btn primary" data-target="credit" data-nav>New Credit</button>
+            </div>
+          </div>
+
+          <div class="cards-grid">
+            <div class="card kpi">
+              <div class="label">Total Customers</div>
+              <div class="value" id="kpiCustomers">0</div>
+              <div class="hint" id="kpiNewCustomers">0 new this week</div>
+            </div>
+            <div class="card kpi">
+              <div class="label">Credit Issued</div>
+              <div class="value" id="kpiCredit">0</div>
+              <div class="hint">All-time credit extended</div>
+            </div>
+            <div class="card kpi">
+              <div class="label">Payments Collected</div>
+              <div class="value" id="kpiCollected">0</div>
+              <div class="hint">Partial + full payments</div>
+            </div>
+            <div class="card kpi">
+              <div class="label">Outstanding</div>
+              <div class="value" id="kpiOutstanding">0</div>
+              <div class="hint" id="kpiOverdue">0 overdue flagged</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card panel">
+              <div class="panel-head">
+                <div>
+                  <div class="title">Credit vs Payments</div>
+                  <div class="muted">Static demo data, last 6 months</div>
+                </div>
+              </div>
+              <div class="chart" id="chartTrend"></div>
+            </div>
+            <div class="card panel">
+              <div class="panel-head">
+                <div>
+                  <div class="title">Monthly Recovery Performance</div>
+                  <div class="muted">Collection rate per month</div>
+                </div>
+              </div>
+              <div class="chart" id="chartRecovery"></div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card panel">
+              <div class="panel-head">
+                <div class="title">Overdue Aging</div>
+                <div class="muted">Distribution by bucket</div>
+              </div>
+              <div class="aging" id="agingBuckets"></div>
+            </div>
+            <div class="card panel">
+              <div class="panel-head">
+                <div class="title">Top Watchlist</div>
+                <div class="muted">High balance + overdue</div>
+              </div>
+              <table class="table" id="watchlistTable" aria-label="Watchlist">
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Balance</th>
+                    <th>Overdue</th>
+                    <th>Risk</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Customers -->
+        <section id="customers" class="section" aria-labelledby="customers-title">
+          <div class="section-head">
+            <div>
+              <h2 id="customers-title">Customer Management</h2>
+              <p class="muted">Add and maintain customer credit profiles.</p>
+            </div>
+            <button class="btn primary" id="btnAddCustomer">Add Customer</button>
+          </div>
+
+          <div class="card panel">
+            <form id="customerForm" class="form" novalidate>
+              <div class="form-grid">
+                <label>Name<input type="text" id="custName" required /></label>
+                <label>Phone<input type="text" id="custPhone" required /></label>
+                <label>Address<input type="text" id="custAddress" /></label>
+                <label>Credit Limit<input type="number" id="custLimit" min="0" step="50" required /></label>
+                <label>Current Balance<input type="number" id="custBalance" min="0" step="10" /></label>
+                <label>Notes<input type="text" id="custNotes" /></label>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Save Customer</button>
+                <button type="button" class="btn ghost" id="btnResetCustomer">Clear</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div class="title">Customer Registry</div>
+              <div class="muted">Includes risk tags and balances</div>
+            </div>
+            <table class="table" id="customerTable" aria-label="Customers">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Credit Limit</th>
+                  <th>Balance</th>
+                  <th>Due</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Credit Entry -->
+        <section id="credit" class="section" aria-labelledby="credit-title">
+          <div class="section-head">
+            <div>
+              <h2 id="credit-title">Credit Transactions</h2>
+              <p class="muted">Issue new credit entries with due dates.</p>
+            </div>
+          </div>
+
+          <div class="card panel">
+            <form id="creditForm" class="form" novalidate>
+              <div class="form-grid">
+                <label>Customer<select id="creditCustomer"></select></label>
+                <label>Amount<input type="number" id="creditAmount" min="0" step="10" required /></label>
+                <label>Date<input type="date" id="creditDate" required /></label>
+                <label>Due Date<input type="date" id="creditDue" required /></label>
+                <label>Remarks<input type="text" id="creditRemarks" /></label>
+                <div class="notice" id="limitNotice" hidden>Projected balance exceeds credit limit.</div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Add Credit</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div class="title">Open Credits</div>
+              <div class="muted">Monitors amounts and due dates</div>
+            </div>
+            <table class="table" id="creditTable" aria-label="Credits">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Issued</th>
+                  <th>Due</th>
+                  <th>Days Left</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Payments -->
+        <section id="payments" class="section" aria-labelledby="payments-title">
+          <div class="section-head">
+            <div>
+              <h2 id="payments-title">Payment Management</h2>
+              <p class="muted">Record partial or full payments and update balances.</p>
+            </div>
+          </div>
+
+          <div class="card panel">
+            <form id="paymentForm" class="form" novalidate>
+              <div class="form-grid">
+                <label>Customer<select id="paymentCustomer"></select></label>
+                <label>Amount<input type="number" id="paymentAmount" min="0" step="10" required /></label>
+                <label>Payment Date<input type="date" id="paymentDate" required /></label>
+                <label>Type<select id="paymentType"><option>Partial</option><option>Full</option></select></label>
+                <label>Method<select id="paymentMethod"><option>Bank</option><option>Cash</option><option>Card</option></select></label>
+                <label>Note<input type="text" id="paymentNote" /></label>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Add Payment</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div class="title">Payment Ledger</div>
+              <div class="muted">History of payments by customer</div>
+            </div>
+            <table class="table" id="paymentTable" aria-label="Payments">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Method</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Overdue -->
+        <section id="overdue" class="section" aria-labelledby="overdue-title">
+          <div class="section-head">
+            <div>
+              <h2 id="overdue-title">Overdue Tracking</h2>
+              <p class="muted">Buckets for 1–7, 8–30, and 30+ days late.</p>
+            </div>
+          </div>
+
+          <div class="cards-grid narrow">
+            <div class="card mini" id="bucket7">1–7 Days<span class="value">0</span></div>
+            <div class="card mini" id="bucket30">8–30 Days<span class="value">0</span></div>
+            <div class="card mini" id="bucket30p">30+ Days<span class="value">0</span></div>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div class="title">Overdue Items</div>
+              <div class="muted">Color coded by severity</div>
+            </div>
+            <table class="table" id="overdueTable" aria-label="Overdue">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Due Date</th>
+                  <th>Days Overdue</th>
+                  <th>Outstanding</th>
+                  <th>Bucket</th>
+                  <th>Reminder</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Reminders -->
+        <section id="reminders" class="section" aria-labelledby="reminders-title">
+          <div class="section-head">
+            <div>
+              <h2 id="reminders-title">Reminder Management</h2>
+              <p class="muted">Visual simulation of automated reminders.</p>
+            </div>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div class="title">Reminder Schedules</div>
+              <div class="muted">Static schedule without messaging integration</div>
+            </div>
+            <table class="table" id="reminderTable" aria-label="Reminders">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Last Reminder</th>
+                  <th>Count</th>
+                  <th>Next Planned</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div class="title">Reminder Status History</div>
+              <div class="muted">Recent reminder events</div>
+            </div>
+            <ul class="history" id="reminderHistory"></ul>
+          </div>
+        </section>
+
+        <!-- Analytics -->
+        <section id="analytics" class="section" aria-labelledby="analytics-title">
+          <div class="section-head">
+            <div>
+              <h2 id="analytics-title">Analytics & Reports</h2>
+              <p class="muted">Static charts demonstrating reporting views.</p>
+            </div>
+          </div>
+
+          <div class="cards-grid">
+            <div class="card kpi">
+              <div class="label">Total Dues</div>
+              <div class="value" id="reportDues">0</div>
+              <div class="hint">Current outstanding</div>
+            </div>
+            <div class="card kpi">
+              <div class="label">Recovered</div>
+              <div class="value" id="reportRecovered">0</div>
+              <div class="hint">Collections to date</div>
+            </div>
+            <div class="card kpi">
+              <div class="label">Recovery %</div>
+              <div class="value" id="reportRecoveryRate">0%</div>
+              <div class="hint">Payments / Credit</div>
+            </div>
+            <div class="card kpi">
+              <div class="label">Reliability Median</div>
+              <div class="value" id="reportReliability">0</div>
+              <div class="hint">Risk-balanced score</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card panel">
+              <div class="panel-head">
+                <div class="title">Customer Reliability Distribution</div>
+                <div class="muted">Scores grouped by grade</div>
+              </div>
+              <div class="chart" id="chartReliability"></div>
+            </div>
+            <div class="card panel">
+              <div class="panel-head">
+                <div class="title">Overdue Trend</div>
+                <div class="muted">Static multi-month trend</div>
+              </div>
+              <div class="chart" id="chartOverdue"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Risk Analysis -->
+        <section id="risk" class="section" aria-labelledby="risk-title">
+          <div class="section-head">
+            <div>
+              <h2 id="risk-title">Customer Risk Analysis</h2>
+              <p class="muted">Reliability scores based on overdue days and utilization.</p>
+            </div>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div class="title">Risk Scores</div>
+              <div class="muted">Progress bars and explanations</div>
+            </div>
+            <table class="table" id="riskTable" aria-label="Risk">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Score</th>
+                  <th>Utilization</th>
+                  <th>Overdue Days</th>
+                  <th>Risk Tag</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Ledger -->
+        <section id="ledger" class="section" aria-labelledby="ledger-title">
+          <div class="section-head">
+            <div>
+              <h2 id="ledger-title">Ledger & Audit History</h2>
+              <p class="muted">Chronological debit/credit trail with running balance.</p>
+            </div>
+          </div>
+
+          <div class="card panel">
+            <table class="table" id="ledgerTable" aria-label="Ledger">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Customer</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Running Balance</th>
+                  <th>Marker</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Settings -->
+        <section id="settings" class="section" aria-labelledby="settings-title">
+          <div class="section-head">
+            <div>
+              <h2 id="settings-title">Settings</h2>
+              <p class="muted">Business profile, rules, reminder intervals, and theme preview.</p>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card panel">
+              <div class="panel-head"><div class="title">Business Profile</div></div>
+              <form class="form">
+                <div class="form-grid">
+                  <label>Business Name<input type="text" value="Aurora Retail" /></label>
+                  <label>Owner<input type="text" value="Dana Rivers" /></label>
+                  <label>Contact Email<input type="email" value="owner@aurora.test" /></label>
+                  <label>Region<input type="text" value="Metro" /></label>
+                </div>
+                <div class="form-actions"><button type="button" class="btn ghost">Save (Simulated)</button></div>
+              </form>
+            </div>
+            <div class="card panel">
+              <div class="panel-head"><div class="title">Default Credit Rules</div></div>
+              <form class="form">
+                <div class="form-grid">
+                  <label>Standard Term<input type="text" value="Net 15" /></label>
+                  <label>Max Utilization<input type="text" value="80%" /></label>
+                  <label>Reminder Interval<input type="text" value="Every 5 days" /></label>
+                  <label>Grace Period<input type="text" value="3 days" /></label>
+                </div>
+                <div class="form-actions"><button type="button" class="btn ghost">Update (Simulated)</button></div>
+              </form>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card panel">
+              <div class="panel-head"><div class="title">Theme Preview</div></div>
+              <div class="theme-preview">
+                <div class="chip">Light</div>
+                <div class="chip active">Indigo</div>
+                <div class="chip">Blue</div>
+                <div class="chip">Neutral</div>
+              </div>
+            </div>
+            <div class="card panel">
+              <div class="panel-head"><div class="title">Data Reset Simulation</div></div>
+              <p class="muted">Demonstrates UI-only reset (no persistence).</p>
+              <button class="btn danger" id="btnReset">Reset In-Memory Data</button>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
