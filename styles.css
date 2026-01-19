@@ -1,0 +1,245 @@
+/*
+  Desktop-only UI styles for Customer Credit & Payment Management
+  - Fixed width container
+  - Clean, professional look
+  - Clear labels and comments for future maintenance
+*/
+
+:root {
+  --bg: #f7f8fb;
+  --fg: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #2563eb;
+  --primary-ink: #ffffff;
+  --card: #ffffff;
+  --warning: #7f1d1d;
+  --warning-bg: #fecaca;
+  --ok-bg: #a7f3d0;
+  --ok: #065f46;
+  --header-bg: #e0f2fe;
+  --header-text: #1f2937;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Full width app wrapper to fit desktop screen */
+.app {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Enhanced header with background and padding */
+.app-header {
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 20px 24px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 4px 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.tab.active {
+  background: var(--primary);
+  color: var(--primary-ink);
+  border-color: var(--primary);
+}
+
+.sections { 
+  padding: 24px;
+  background: var(--card);
+  flex: 1;
+  overflow-y: auto;
+}
+.section { display: none; }
+.section.active { display: block; }
+
+/* Cards for top-level KPIs */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.card-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.card-value {
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.card-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.card-value {
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Panels wrap tables or forms */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.panel-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Table styling */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table thead th {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.table tbody td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr.status-overdue {
+  background: var(--warning-bg);
+}
+
+.table tbody tr.status-ok {
+  background: var(--ok-bg);
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn.primary {
+  background: var(--primary);
+  color: var(--primary-ink);
+  border-color: var(--primary);
+}
+
+.actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* Subtabs within a section */
+.subtabs { display: flex; gap: 8px; margin: 8px 0 12px; }
+.subtab {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.subtab.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+
+/* Panes */
+.pane { display: none; }
+.pane.active { display: block; }
+
+/* Forms */
+.form { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.form-row { display: grid; grid-template-columns: 200px 1fr; align-items: center; gap: 12px; margin-bottom: 10px; }
+.form-row label { color: var(--muted); }
+.form-row input, .form-row select, .form-row textarea {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+}
+.form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+
+/* Warning text for credit limit */
+.warning { color: var(--warning); font-weight: 600; }
+input.limit-warning { border-color: var(--warning); background: var(--warning-bg); }
+
+/* Modal */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: grid; place-items: center; }
+.modal[hidden] { display: none; }
+.modal-content { width: 700px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.modal-header { border-bottom: 1px solid var(--border); margin-bottom: 12px; padding-bottom: 6px; }
+
+/* Placeholder row style */
+.placeholder-row td { font-style: italic; color: var(--muted); }

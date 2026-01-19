@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Customer Credit & Payment Management</title>
+  <!-- Desktop-only fixed width; no responsive behavior -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- App container: fixed width for desktop-only use -->
+  <div class="app">
+    <header class="app-header">
+      <h1>Customer Credit & Payment Management</h1>
+      
+      <!-- Top navigation tabs at right corner -->
+      <nav class="tabs" aria-label="Primary">
+        <button class="tab" data-section="dashboard" aria-controls="dashboard">Home</button>
+        <button class="tab" data-section="customers" aria-controls="customers">Customers</button>
+        <button class="tab" data-section="overdue" aria-controls="overdue">Overdue</button>
+        <button class="tab" data-section="summary" aria-controls="summary">Business Summary</button>
+      </nav>
+    </header>
+
+    <main class="sections">
+      <!-- Dashboard: summary cards + customer status table -->
+      <section id="dashboard" class="section active" aria-labelledby="dashboard">
+        <!-- Summary metrics -->
+        <div class="cards">
+          <div class="card">
+            <div class="card-label">Total Customers</div>
+            <div class="card-value" id="totalCustomers">0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Total Credit Given</div>
+            <div class="card-value" id="totalCreditGiven">0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Total Overdue Amount</div>
+            <div class="card-value" id="totalOverdueAmount">0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Total Payments Received</div>
+            <div class="card-value" id="totalPaymentsReceived">0</div>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-title">Customer Overview</div>
+          <table class="table" id="dashboardCustomerTable" aria-label="Customer Summary">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Credit Limit</th>
+                <th>Current Balance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Populated by script.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Customers: management table + add/edit modal trigger -->
+      <section id="customers" class="section" aria-labelledby="customers">
+        <h2>Customers</h2>
+        <div class="actions-row">
+          <button class="btn primary" id="btnAddCustomer">Add Customer</button>
+        </div>
+        <table class="table" id="customersTable" aria-label="Customers">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Contact</th>
+              <th>Credit Limit</th>
+              <th>Notes</th>
+              <th>Current Balance</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated by script.js -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Transactions: record credit or payment -->
+      <section id="transactions" class="section" aria-labelledby="transactions">
+        <h2>Credit & Payment Entry</h2>
+        <div class="subtabs">
+          <button class="subtab active" data-pane="creditPane">Record Credit</button>
+          <button class="subtab" data-pane="paymentPane">Record Payment</button>
+        </div>
+
+        <div id="creditPane" class="pane active" aria-label="Record Credit">
+          <form id="creditForm" class="form" novalidate>
+            <div class="form-row">
+              <label for="creditCustomerSelect">Customer</label>
+              <select id="creditCustomerSelect" required></select>
+            </div>
+            <div class="form-row">
+              <label for="creditAmount">Amount</label>
+              <input type="number" id="creditAmount" min="0" step="0.01" placeholder="0.00" required />
+            </div>
+            <div class="form-row">
+              <label for="creditDueDate">Due Date</label>
+              <input type="date" id="creditDueDate" required />
+            </div>
+            <div class="form-row">
+              <label for="creditNotes">Notes</label>
+              <textarea id="creditNotes" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <!-- UI-level warning when exceeding credit limit -->
+            <div id="limitWarning" class="warning" hidden>
+              Warning: This credit exceeds the customer's credit limit.
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn primary">Save Credit</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="paymentPane" class="pane" aria-label="Record Payment">
+          <form id="paymentForm" class="form" novalidate>
+            <div class="form-row">
+              <label for="paymentCustomerSelect">Customer</label>
+              <select id="paymentCustomerSelect" required></select>
+            </div>
+            <div class="form-row">
+              <label for="paymentAmount">Amount</label>
+              <input type="number" id="paymentAmount" min="0" step="0.01" placeholder="0.00" required />
+            </div>
+            <div class="form-row">
+              <label for="paymentDate">Payment Date</label>
+              <input type="date" id="paymentDate" required />
+            </div>
+            <div class="form-row">
+              <label for="paymentNotes">Notes</label>
+              <textarea id="paymentNotes" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn primary">Save Payment</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Overdue: shows pending dues, due dates, days overdue, reminder status -->
+      <section id="overdue" class="section" aria-labelledby="overdue">
+        <h2>Overdue Management</h2>
+        <table class="table" id="overdueTable" aria-label="Overdue Credits">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Due Date</th>
+              <th>Days Overdue</th>
+              <th>Outstanding</th>
+              <th>Reminder Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated by script.js -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Business Summary: overall and per-customer insights -->
+      <section id="summary" class="section" aria-labelledby="summary">
+        <h2>Business Summary</h2>
+        <div class="cards">
+          <div class="card">
+            <div class="card-label">Overall Outstanding</div>
+            <div class="card-value" id="overallOutstanding">0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Customers With Overdue</div>
+            <div class="card-value" id="customersWithOverdue">0</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Customer-Level Insights</div>
+          <table class="table" id="summaryTable" aria-label="Customer Insights">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Total Credit</th>
+                <th>Total Payments</th>
+                <th>Current Balance</th>
+                <th>Overdue Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Populated by script.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Customer Modal: Add/Edit customer details -->
+    <div id="customerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle" hidden>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="customerModalTitle">Add Customer</h3>
+        </div>
+        <form id="customerForm" class="form" novalidate>
+          <input type="hidden" id="customerId" />
+          <div class="form-row">
+            <label for="customerName">Name</label>
+            <input type="text" id="customerName" placeholder="Full name" required />
+          </div>
+          <div class="form-row">
+            <label for="customerContact">Contact Number</label>
+            <input type="text" id="customerContact" placeholder="e.g., 555-1234" required />
+          </div>
+          <div class="form-row">
+            <label for="customerLimit">Credit Limit</label>
+            <input type="number" id="customerLimit" min="0" step="1" placeholder="0" required />
+          </div>
+          <div class="form-row">
+            <label for="customerNotes">Notes</label>
+            <textarea id="customerNotes" rows="2" placeholder="Optional notes"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Save</button>
+            <button type="button" class="btn" id="btnCancelCustomer">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
