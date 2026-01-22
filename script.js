@@ -40,7 +40,7 @@ const state = {
 
 // --- Utilities --------------------------------------------------------------
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-const fmtMoney = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtMoney = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const parseDate = (str) => { const [y, m, d] = (str || '').split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
 const daysBetween = (a, b) => Math.floor((a.setHours(0, 0, 0, 0) - b.setHours(0, 0, 0, 0)) / 86400000);
 
@@ -95,6 +95,9 @@ function renderBars(container, data, colorClass = '') {
 }
 
 // --- Rendering: Dashboard ---------------------------------------------------
+let dashboardTrendChart = null;
+let dashboardRecoveryChart = null;
+
 function renderDashboard() {
   const totals = globalTotals();
   document.getElementById('kpiCustomers').textContent = fmt(totals.totalCustomers);
@@ -104,29 +107,56 @@ function renderDashboard() {
   document.getElementById('kpiOutstanding').textContent = fmtMoney(totals.outstanding);
   document.getElementById('kpiOverdue').textContent = `${fmt(totals.overdue)} overdue flagged`;
 
-  // Chart: credit vs payments (dummy monthly values)
+  // Chart.js: credit vs payments
   const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
   const creditSeries = [6800, 7200, 7500, 8100, 8400, totals.totalCredit];
   const paySeries = [3900, 4100, 4600, 5200, 5400, totals.totalPayments];
-  const max = Math.max(...creditSeries, ...paySeries);
-  const trend = document.getElementById('chartTrend');
-  trend.innerHTML = '';
-  months.forEach((m, idx) => {
-    const block = document.createElement('div');
-    block.className = 'bar-row';
-    const creditPct = Math.round((creditSeries[idx] / max) * 100);
-    const payPct = Math.round((paySeries[idx] / max) * 100);
-    block.innerHTML = `
-      <div class="bar-track"><div class="bar-fill" style="width:${creditPct}%"></div></div>
-      <div class="bar-track" style="background:#e0f2fe"><div class="bar-fill" style="background:var(--success);width:${payPct}%"></div></div>
-      <div class="label">${m}</div>
-    `;
-    trend.appendChild(block);
-  });
 
-  // Recovery chart
-  const recovery = [72, 75, 78, 81, 84, Math.min(99, Math.round((totals.totalPayments / totals.totalCredit) * 100))];
-  renderBars(document.getElementById('chartRecovery'), months.map((m, i) => ({ label: m, value: recovery[i] })), '');
+  const trendCtx = document.getElementById('chartTrendCanvas');
+  if (trendCtx) {
+    if (dashboardTrendChart) dashboardTrendChart.destroy();
+    dashboardTrendChart = new Chart(trendCtx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [
+          { label: 'Credit', data: creditSeries, backgroundColor: '#304ffe' },
+          { label: 'Payments', data: paySeries, backgroundColor: '#10b981' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  // Chart.js: recovery pie (collected vs outstanding)
+  const recoveryCtx = document.getElementById('chartRecoveryCanvas');
+  if (recoveryCtx) {
+    if (dashboardRecoveryChart) dashboardRecoveryChart.destroy();
+    const collected = totals.totalPayments;
+    const outstanding = Math.max(0, totals.outstanding);
+    dashboardRecoveryChart = new Chart(recoveryCtx, {
+      type: 'pie',
+      data: {
+        labels: ['Collected', 'Outstanding'],
+        datasets: [{
+          data: [collected, outstanding],
+          backgroundColor: ['#10b981', '#f59e0b'],
+          borderColor: '#ffffff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'right' } }
+      }
+    });
+  }
 
   // Aging buckets
   renderAging();
@@ -199,9 +229,11 @@ function renderCustomers() {
       <td class="align-right">${fmtMoney(t.overdueAmount)}</td>
       <td><span class="badge ${riskTag}">${riskTag.toUpperCase()}</span> ${overdueBadge}</td>
       <td>${c.notes || ''}</td>
+      <td><button class="btn ghost edit-btn" data-id="${c.id}" data-type="customer">Edit</button></td>
     `;
     tbody.appendChild(tr);
   });
+  attachEditListeners();
   populateCustomerSelects();
 }
 
@@ -231,9 +263,11 @@ function renderCredits() {
       <td>${c.dueDate}</td>
       <td class="align-center">${daysLeft >= 0 ? daysLeft : `${Math.abs(daysLeft)} overdue`}</td>
       <td>${c.remarks || ''}</td>
+      <td><button class="btn ghost edit-btn" data-id="${c.id}" data-type="credit">Edit</button></td>
     `;
     tbody.appendChild(tr);
   });
+  attachEditListeners();
 }
 
 // --- Payments --------------------------------------------------------------
@@ -250,9 +284,11 @@ function renderPayments() {
       <td>${p.type || 'Partial'}</td>
       <td>${p.method || ''}</td>
       <td>${p.note || ''}</td>
+      <td><button class="btn ghost edit-btn" data-id="${p.id}" data-type="payment">Edit</button></td>
     `;
     tbody.appendChild(tr);
   });
+  attachEditListeners();
 }
 
 // --- Overdue ---------------------------------------------------------------
@@ -316,6 +352,10 @@ function renderReminders() {
   });
 }
 
+// --- Analytics Charts ------
+let analyticsReliabilityChart = null;
+let analyticsOverdueChart = null;
+
 // --- Analytics -------------------------------------------------------------
 function renderAnalytics() {
   const totals = globalTotals();
@@ -326,29 +366,78 @@ function renderAnalytics() {
   const medianReliability = median(state.customers.map(c => riskScore(c.id)));
   document.getElementById('reportReliability').textContent = fmt(medianReliability);
 
+  // Reliability Distribution - Pie Chart
   const reliabilities = [
-    { label: '90-100', value: countScores(90, 100) },
-    { label: '75-89', value: countScores(75, 89) },
-    { label: '55-74', value: countScores(55, 74) },
-    { label: '0-54', value: countScores(0, 54) }
+    { label: '90-100 (Excellent)', value: countScores(90, 100), color: '#10b981' },
+    { label: '75-89 (Good)', value: countScores(75, 89), color: '#3b82f6' },
+    { label: '55-74 (Fair)', value: countScores(55, 74), color: '#f59e0b' },
+    { label: '0-54 (Poor)', value: countScores(0, 54), color: '#ef4444' }
   ];
-  const max = Math.max(...reliabilities.map(r => r.value), 1);
-  const relChart = document.getElementById('chartReliability');
-  relChart.innerHTML = '';
-  reliabilities.forEach(r => {
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    const pct = Math.round((r.value / max) * 100);
-    row.innerHTML = `
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-      <div class="label">${r.label}</div>
-      <div class="value">${r.value}</div>
-    `;
-    relChart.appendChild(row);
+
+  const pieCtx = document.getElementById('chartReliabilityPie').getContext('2d');
+  if (analyticsReliabilityChart) analyticsReliabilityChart.destroy();
+  analyticsReliabilityChart = new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+      labels: reliabilities.map(r => r.label),
+      datasets: [{
+        data: reliabilities.map(r => r.value),
+        backgroundColor: reliabilities.map(r => r.color),
+        borderColor: '#ffffff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 15, font: { size: 12 }, usePointStyle: true }
+        }
+      }
+    }
   });
 
+  // Overdue Trend - Bar Chart
   const overdueTrend = [18, 16, 15, 12, 10, 9];
-  renderBars(document.getElementById('chartOverdue'), ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'].map((m, i) => ({ label: m, value: overdueTrend[i] * 4 })), '');
+  const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
+  
+  const barCtx = document.getElementById('chartOverdueBar').getContext('2d');
+  if (analyticsOverdueChart) analyticsOverdueChart.destroy();
+  analyticsOverdueChart = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Overdue Cases (%)',
+        data: overdueTrend.map(v => v * 4),
+        backgroundColor: '#ef4444',
+        borderColor: '#dc2626',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: true,
+          labels: { padding: 15, font: { size: 12 } }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { font: { size: 11 } },
+          title: { display: true, text: 'Percentage (%)' }
+        },
+        x: {
+          ticks: { font: { size: 11 } }
+        }
+      }
+    }
+  });
 }
 
 function countScores(min, max) {
@@ -415,6 +504,55 @@ function renderLedger() {
 }
 
 // --- Forms and actions ------------------------------------------------------
+function attachEditListeners() {
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const id = Number(btn.dataset.id);
+      const type = btn.dataset.type;
+
+      if (type === 'customer') {
+        const customer = state.customers.find(c => c.id === id);
+        if (customer) {
+          document.getElementById('custId').value = customer.id;
+          document.getElementById('custName').value = customer.name;
+          document.getElementById('custPhone').value = customer.phone;
+          document.getElementById('custAddress').value = customer.address;
+          document.getElementById('custLimit').value = customer.creditLimit;
+          document.getElementById('custNotes').value = customer.notes;
+          document.getElementById('custSubmitBtn').textContent = 'Update Customer';
+          switchSection('customers');
+        }
+      } else if (type === 'credit') {
+        const credit = state.credits.find(c => c.id === id);
+        if (credit) {
+          document.getElementById('creditId').value = credit.id;
+          document.getElementById('creditCustomer').value = credit.customerId;
+          document.getElementById('creditAmount').value = credit.amount;
+          document.getElementById('creditDate').value = credit.date;
+          document.getElementById('creditDue').value = credit.dueDate;
+          document.getElementById('creditRemarks').value = credit.remarks;
+          document.getElementById('creditSubmitBtn').textContent = 'Update Credit';
+          switchSection('credit');
+        }
+      } else if (type === 'payment') {
+        const payment = state.payments.find(p => p.id === id);
+        if (payment) {
+          document.getElementById('paymentId').value = payment.id;
+          document.getElementById('paymentCustomer').value = payment.customerId;
+          document.getElementById('paymentAmount').value = payment.amount;
+          document.getElementById('paymentDate').value = payment.date;
+          document.getElementById('paymentType').value = payment.type;
+          document.getElementById('paymentMethod').value = payment.method;
+          document.getElementById('paymentNote').value = payment.note;
+          document.getElementById('paymentSubmitBtn').textContent = 'Update Payment';
+          switchSection('payments');
+        }
+      }
+    });
+  });
+}
+
 function setupNav() {
   document.querySelectorAll('.nav-link').forEach(btn => {
     btn.addEventListener('click', () => switchSection(btn.dataset.target));
@@ -431,28 +569,53 @@ function switchSection(id) {
 
 function setupCustomerForm() {
   const form = document.getElementById('customerForm');
+  const submitBtn = document.getElementById('custSubmitBtn');
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    const custId = Number(document.getElementById('custId').value || 0);
     const name = document.getElementById('custName').value.trim();
     const phone = document.getElementById('custPhone').value.trim();
     const address = document.getElementById('custAddress').value.trim();
     const limit = Number(document.getElementById('custLimit').value);
-    const balance = Number(document.getElementById('custBalance').value || 0);
     const notes = document.getElementById('custNotes').value.trim();
+    
     if (!name || !phone || !Number.isFinite(limit)) return;
-    const id = Math.max(0, ...state.customers.map(c => c.id)) + 1;
-    state.customers.push({ id, name, phone, address, creditLimit: limit, notes, createdAt: formatDate(state.today) });
-    if (balance > 0) {
-      const creditId = Math.max(0, ...state.credits.map(c => c.id)) + 1;
-      state.credits.push({ id: creditId, customerId: id, amount: balance, date: formatDate(state.today), dueDate: formatDate(addDays(state.today, 15)), remarks: 'Opening balance', reminderSent: false });
-      state.history.push({ ts: `${formatDate(state.today)} 09:00`, customerId: id, type: 'Credit', amount: balance, marker: 'Opening balance' });
+
+    if (custId > 0) {
+      // Update existing customer
+      const cust = state.customers.find(c => c.id === custId);
+      if (cust) {
+        cust.name = name;
+        cust.phone = phone;
+        cust.address = address;
+        cust.creditLimit = limit;
+        cust.notes = notes;
+      }
+    } else {
+      // Add new customer
+      const newId = Math.max(0, ...state.customers.map(c => c.id)) + 1;
+      state.customers.push({ id: newId, name, phone, address, creditLimit: limit, notes, createdAt: formatDate(state.today) });
     }
+    
     form.reset();
+    document.getElementById('custId').value = '';
+    submitBtn.textContent = 'Save Customer';
     renderAll();
   });
 
-  document.getElementById('btnAddCustomer').addEventListener('click', () => switchSection('customers'));
-  document.getElementById('btnResetCustomer').addEventListener('click', () => form.reset());
+  document.getElementById('btnAddCustomer').addEventListener('click', () => {
+    form.reset();
+    document.getElementById('custId').value = '';
+    submitBtn.textContent = 'Save Customer';
+    switchSection('customers');
+  });
+  
+  document.getElementById('btnResetCustomer').addEventListener('click', () => {
+    form.reset();
+    document.getElementById('custId').value = '';
+    submitBtn.textContent = 'Save Customer';
+  });
 }
 
 function setupCreditForm() {
@@ -460,14 +623,23 @@ function setupCreditForm() {
   const amountEl = document.getElementById('creditAmount');
   const custEl = document.getElementById('creditCustomer');
   const notice = document.getElementById('limitNotice');
+  const submitBtn = document.getElementById('creditSubmitBtn');
 
   function checkLimit() {
     const custId = Number(custEl.value);
     const amt = Number(amountEl.value);
+    const creditId = Number(document.getElementById('creditId').value || 0);
     const cust = state.customers.find(c => c.id === custId);
     if (!cust || !Number.isFinite(amt)) { notice.hidden = true; return; }
     const totals = customerTotals(custId);
-    const projected = totals.balance + amt;
+    let projected = totals.balance + amt;
+    // If editing, subtract the old amount first
+    if (creditId > 0) {
+      const oldCredit = state.credits.find(c => c.id === creditId);
+      if (oldCredit) {
+        projected = totals.balance - oldCredit.amount + amt;
+      }
+    }
     notice.hidden = !(projected > cust.creditLimit);
   }
 
@@ -476,25 +648,53 @@ function setupCreditForm() {
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    const creditId = Number(document.getElementById('creditId').value || 0);
     const custId = Number(custEl.value);
     const amount = Number(amountEl.value);
     const date = document.getElementById('creditDate').value;
     const due = document.getElementById('creditDue').value;
     const remarks = document.getElementById('creditRemarks').value.trim();
     if (!custId || !Number.isFinite(amount) || !date || !due) return;
-    const id = Math.max(0, ...state.credits.map(c => c.id)) + 1;
-    state.credits.push({ id, customerId: custId, amount, date, dueDate: due, remarks, reminderSent: false });
-    state.history.push({ ts: `${date} 10:00`, customerId: custId, type: 'Credit', amount, marker: remarks || 'Credit' });
+
+    if (creditId > 0) {
+      // Update existing credit
+      const credit = state.credits.find(c => c.id === creditId);
+      if (credit) {
+        credit.customerId = custId;
+        credit.amount = amount;
+        credit.date = date;
+        credit.dueDate = due;
+        credit.remarks = remarks;
+      }
+    } else {
+      // Add new credit
+      const newId = Math.max(0, ...state.credits.map(c => c.id)) + 1;
+      state.credits.push({ id: newId, customerId: custId, amount, date, dueDate: due, remarks, reminderSent: false });
+      state.history.push({ ts: `${date} 10:00`, customerId: custId, type: 'Credit', amount, marker: remarks || 'Credit' });
+    }
+    
     form.reset();
+    document.getElementById('creditId').value = '';
+    submitBtn.textContent = 'Add Credit';
     notice.hidden = true;
     renderAll();
+  });
+
+  document.getElementById('btnResetCredit').addEventListener('click', () => {
+    form.reset();
+    document.getElementById('creditId').value = '';
+    submitBtn.textContent = 'Add Credit';
+    notice.hidden = true;
   });
 }
 
 function setupPaymentForm() {
   const form = document.getElementById('paymentForm');
+  const submitBtn = document.getElementById('paymentSubmitBtn');
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    const paymentId = Number(document.getElementById('paymentId').value || 0);
     const custId = Number(document.getElementById('paymentCustomer').value);
     const amount = Number(document.getElementById('paymentAmount').value);
     const date = document.getElementById('paymentDate').value;
@@ -502,11 +702,35 @@ function setupPaymentForm() {
     const method = document.getElementById('paymentMethod').value;
     const note = document.getElementById('paymentNote').value.trim();
     if (!custId || !Number.isFinite(amount) || !date) return;
-    const id = Math.max(0, ...state.payments.map(p => p.id)) + 1;
-    state.payments.push({ id, customerId: custId, amount, date, type, method, note });
-    state.history.push({ ts: `${date} 16:00`, customerId: custId, type: 'Payment', amount, marker: type });
+
+    if (paymentId > 0) {
+      // Update existing payment
+      const payment = state.payments.find(p => p.id === paymentId);
+      if (payment) {
+        payment.customerId = custId;
+        payment.amount = amount;
+        payment.date = date;
+        payment.type = type;
+        payment.method = method;
+        payment.note = note;
+      }
+    } else {
+      // Add new payment
+      const newId = Math.max(0, ...state.payments.map(p => p.id)) + 1;
+      state.payments.push({ id: newId, customerId: custId, amount, date, type, method, note });
+      state.history.push({ ts: `${date} 16:00`, customerId: custId, type: 'Payment', amount, marker: type });
+    }
+    
     form.reset();
+    document.getElementById('paymentId').value = '';
+    submitBtn.textContent = 'Add Payment';
     renderAll();
+  });
+
+  document.getElementById('btnResetPayment').addEventListener('click', () => {
+    form.reset();
+    document.getElementById('paymentId').value = '';
+    submitBtn.textContent = 'Add Payment';
   });
 }
 
@@ -518,13 +742,31 @@ function setupSimulateDay() {
 }
 
 function setupReset() {
-  document.getElementById('btnReset').addEventListener('click', () => {
+  const resetBtn = document.getElementById('btnReset');
+  if (!resetBtn) return;
+  resetBtn.addEventListener('click', () => {
     state.customers.length = 0;
     state.credits.length = 0;
     state.payments.length = 0;
     state.reminders.length = 0;
     state.history.length = 0;
     renderAll();
+  });
+}
+
+function setupCurrencyConversion() {
+  const btn = document.getElementById('btnConvert');
+  if (!btn) return;
+  
+  btn.addEventListener('click', () => {
+    const amountInr = Number(document.getElementById('amountUsd').value || 0);
+    
+    document.getElementById('resultUsd').textContent = fmtMoney(amountInr);
+    document.getElementById('resultInr').textContent = fmtMoney(amountInr);
+    document.getElementById('conversionResult').style.display = 'grid';
+    
+    // Update INR charts with new amount value
+    setTimeout(() => renderInrBarChart(), 100);
   });
 }
 
@@ -540,6 +782,181 @@ function formatDate(date) {
   const m = `${date.getMonth() + 1}`.padStart(2, '0');
   const d = `${date.getDate()}`.padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+// --- Render All 
+
+// --- Charts & Currency Conversion ------------------------------------------
+let barChartInstance = null;
+let pieChartInstance = null;
+let paymentMethodChartInstance = null;
+let inrBarChartInstance = null;
+
+function renderCharts() {
+  renderBarChart();
+  renderPieChart();
+  renderPaymentMethodChart();
+  renderInrBarChart();
+}
+
+function renderBarChart() {
+  const ctx = document.getElementById('barChart');
+  if (!ctx) return;
+  
+  const creditByCustomer = {};
+  const paymentByCustomer = {};
+  
+  state.customers.forEach(c => {
+    creditByCustomer[c.name] = state.credits.filter(cr => cr.customerId === c.id).reduce((s, cr) => s + cr.amount, 0);
+    paymentByCustomer[c.name] = state.payments.filter(p => p.customerId === c.id).reduce((s, p) => s + p.amount, 0);
+  });
+  
+  const labels = Object.keys(creditByCustomer);
+  const creditData = labels.map(l => creditByCustomer[l]);
+  const paymentData = labels.map(l => paymentByCustomer[l]);
+  
+  if (barChartInstance) barChartInstance.destroy();
+  
+  barChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Credit Issued',
+          data: creditData,
+          backgroundColor: '#304ffe',
+          borderColor: '#304ffe',
+          borderWidth: 1
+        },
+        {
+          label: 'Payments Collected',
+          data: paymentData,
+          backgroundColor: '#10b981',
+          borderColor: '#10b981',
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top' }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderPieChart() {
+  const ctx = document.getElementById('pieChart');
+  if (!ctx) return;
+  
+  const creditByCustomer = {};
+  const colors = ['#304ffe', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444'];
+  
+  state.customers.forEach((c, idx) => {
+    creditByCustomer[c.name] = state.credits.filter(cr => cr.customerId === c.id).reduce((s, cr) => s + cr.amount, 0);
+  });
+  
+  if (pieChartInstance) pieChartInstance.destroy();
+  
+  pieChartInstance = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(creditByCustomer),
+      datasets: [{
+        data: Object.values(creditByCustomer),
+        backgroundColor: colors.slice(0, Object.keys(creditByCustomer).length),
+        borderColor: '#ffffff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'right' }
+      }
+    }
+  });
+}
+
+function renderPaymentMethodChart() {
+  const ctx = document.getElementById('paymentMethodChart');
+  if (!ctx) return;
+  
+  const byMethod = {};
+  const colors = ['#304ffe', '#0ea5e9', '#10b981'];
+  
+  state.payments.forEach(p => {
+    const method = p.method || 'Unknown';
+    byMethod[method] = (byMethod[method] || 0) + p.amount;
+  });
+  
+  if (paymentMethodChartInstance) paymentMethodChartInstance.destroy();
+  
+  paymentMethodChartInstance = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(byMethod),
+      datasets: [{
+        data: Object.values(byMethod),
+        backgroundColor: colors.slice(0, Object.keys(byMethod).length),
+        borderColor: '#ffffff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'right' }
+      }
+    }
+  });
+}
+
+function renderInrBarChart() {
+  const ctx = document.getElementById('inrBarChart');
+  if (!ctx) return;
+  const creditByCustomer = {};
+  
+  state.customers.forEach(c => {
+    creditByCustomer[c.name] = state.credits.filter(cr => cr.customerId === c.id).reduce((s, cr) => s + cr.amount, 0);
+  });
+  
+  const labels = Object.keys(creditByCustomer);
+  const inrData = labels.map(l => creditByCustomer[l]);
+  
+  if (inrBarChartInstance) inrBarChartInstance.destroy();
+  
+  inrBarChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Credit (₹)',
+        data: inrData,
+        backgroundColor: '#f59e0b',
+        borderColor: '#d97706',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top' }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
 }
 
 // --- Render All ------------------------------------------------------------

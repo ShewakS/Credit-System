@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="layout">
@@ -29,7 +30,6 @@
         <button class="nav-link" data-target="analytics">Analytics</button>
         <button class="nav-link" data-target="risk">Risk Analysis</button>
         <button class="nav-link" data-target="ledger">Ledger</button>
-        <button class="nav-link" data-target="settings">Settings</button>
       </nav>
     </aside>
 
@@ -37,9 +37,9 @@
       <header class="topbar">
         <div>
           <h1>Smart Credit Ledger Management</h1>
-          <p class="muted">Desktop prototype for SME credit, payments, overdue and reminders.</p>
+          <!-- <p class="muted">Desktop prototype for SME credit, payments, overdue and reminders.</p> -->
         </div>
-        <div class="pill">Desktop Mode • Prototype</div>
+        <div class="pill">USER</div>
       </header>
 
       <main class="main">
@@ -87,7 +87,9 @@
                   <div class="muted">Static demo data, last 6 months</div>
                 </div>
               </div>
-              <div class="chart" id="chartTrend"></div>
+              <div class="chart">
+                <canvas id="chartTrendCanvas"></canvas>
+              </div>
             </div>
             <div class="card panel">
               <div class="panel-head">
@@ -96,7 +98,9 @@
                   <div class="muted">Collection rate per month</div>
                 </div>
               </div>
-              <div class="chart" id="chartRecovery"></div>
+              <div class="chart">
+                <canvas id="chartRecoveryCanvas"></canvas>
+              </div>
             </div>
           </div>
 
@@ -140,16 +144,16 @@
 
           <div class="card panel">
             <form id="customerForm" class="form" novalidate>
+              <input type="hidden" id="custId" />
               <div class="form-grid">
                 <label>Name<input type="text" id="custName" required /></label>
                 <label>Phone<input type="text" id="custPhone" required /></label>
                 <label>Address<input type="text" id="custAddress" /></label>
                 <label>Credit Limit<input type="number" id="custLimit" min="0" step="50" required /></label>
-                <label>Current Balance<input type="number" id="custBalance" min="0" step="10" /></label>
                 <label>Notes<input type="text" id="custNotes" /></label>
               </div>
               <div class="form-actions">
-                <button type="submit" class="btn primary">Save Customer</button>
+                <button type="submit" class="btn primary" id="custSubmitBtn">Save Customer</button>
                 <button type="button" class="btn ghost" id="btnResetCustomer">Clear</button>
               </div>
             </form>
@@ -170,6 +174,7 @@
                   <th>Due</th>
                   <th>Status</th>
                   <th>Notes</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -188,6 +193,7 @@
 
           <div class="card panel">
             <form id="creditForm" class="form" novalidate>
+              <input type="hidden" id="creditId" />
               <div class="form-grid">
                 <label>Customer<select id="creditCustomer"></select></label>
                 <label>Amount<input type="number" id="creditAmount" min="0" step="10" required /></label>
@@ -197,7 +203,8 @@
                 <div class="notice" id="limitNotice" hidden>Projected balance exceeds credit limit.</div>
               </div>
               <div class="form-actions">
-                <button type="submit" class="btn primary">Add Credit</button>
+                <button type="submit" class="btn primary" id="creditSubmitBtn">Add Credit</button>
+                <button type="button" class="btn ghost" id="btnResetCredit">Clear</button>
               </div>
             </form>
           </div>
@@ -216,6 +223,7 @@
                   <th>Due</th>
                   <th>Days Left</th>
                   <th>Note</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -234,6 +242,7 @@
 
           <div class="card panel">
             <form id="paymentForm" class="form" novalidate>
+              <input type="hidden" id="paymentId" />
               <div class="form-grid">
                 <label>Customer<select id="paymentCustomer"></select></label>
                 <label>Amount<input type="number" id="paymentAmount" min="0" step="10" required /></label>
@@ -243,7 +252,8 @@
                 <label>Note<input type="text" id="paymentNote" /></label>
               </div>
               <div class="form-actions">
-                <button type="submit" class="btn primary">Add Payment</button>
+                <button type="submit" class="btn primary" id="paymentSubmitBtn">Add Payment</button>
+                <button type="button" class="btn ghost" id="btnResetPayment">Clear</button>
               </div>
             </form>
           </div>
@@ -262,6 +272,7 @@
                   <th>Type</th>
                   <th>Method</th>
                   <th>Note</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -380,14 +391,18 @@
                 <div class="title">Customer Reliability Distribution</div>
                 <div class="muted">Scores grouped by grade</div>
               </div>
-              <div class="chart" id="chartReliability"></div>
+              <div class="chart">
+                <canvas id="chartReliabilityPie"></canvas>
+              </div>
             </div>
             <div class="card panel">
               <div class="panel-head">
                 <div class="title">Overdue Trend</div>
                 <div class="muted">Static multi-month trend</div>
               </div>
-              <div class="chart" id="chartOverdue"></div>
+              <div class="chart">
+                <canvas id="chartOverdueBar"></canvas>
+              </div>
             </div>
           </div>
         </section>
@@ -448,59 +463,6 @@
           </div>
         </section>
 
-        <!-- Settings -->
-        <section id="settings" class="section" aria-labelledby="settings-title">
-          <div class="section-head">
-            <div>
-              <h2 id="settings-title">Settings</h2>
-              <p class="muted">Business profile, rules, reminder intervals, and theme preview.</p>
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="card panel">
-              <div class="panel-head"><div class="title">Business Profile</div></div>
-              <form class="form">
-                <div class="form-grid">
-                  <label>Business Name<input type="text" value="Aurora Retail" /></label>
-                  <label>Owner<input type="text" value="Dana Rivers" /></label>
-                  <label>Contact Email<input type="email" value="owner@aurora.test" /></label>
-                  <label>Region<input type="text" value="Metro" /></label>
-                </div>
-                <div class="form-actions"><button type="button" class="btn ghost">Save (Simulated)</button></div>
-              </form>
-            </div>
-            <div class="card panel">
-              <div class="panel-head"><div class="title">Default Credit Rules</div></div>
-              <form class="form">
-                <div class="form-grid">
-                  <label>Standard Term<input type="text" value="Net 15" /></label>
-                  <label>Max Utilization<input type="text" value="80%" /></label>
-                  <label>Reminder Interval<input type="text" value="Every 5 days" /></label>
-                  <label>Grace Period<input type="text" value="3 days" /></label>
-                </div>
-                <div class="form-actions"><button type="button" class="btn ghost">Update (Simulated)</button></div>
-              </form>
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="card panel">
-              <div class="panel-head"><div class="title">Theme Preview</div></div>
-              <div class="theme-preview">
-                <div class="chip">Light</div>
-                <div class="chip active">Indigo</div>
-                <div class="chip">Blue</div>
-                <div class="chip">Neutral</div>
-              </div>
-            </div>
-            <div class="card panel">
-              <div class="panel-head"><div class="title">Data Reset Simulation</div></div>
-              <p class="muted">Demonstrates UI-only reset (no persistence).</p>
-              <button class="btn danger" id="btnReset">Reset In-Memory Data</button>
-            </div>
-          </div>
-        </section>
       </main>
     </div>
   </div>
