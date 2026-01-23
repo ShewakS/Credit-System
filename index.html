@@ -51,7 +51,6 @@
               <p class="muted">Overview of customers, credits, payments, and recovery trends.</p>
             </div>
             <div class="section-actions">
-              <button class="btn ghost" id="simulateDay">Simulate +1 Day</button>
               <button class="btn primary" data-target="credit" data-nav>New Credit</button>
             </div>
           </div>
@@ -101,33 +100,6 @@
               <div class="chart">
                 <canvas id="chartRecoveryCanvas"></canvas>
               </div>
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="card panel">
-              <div class="panel-head">
-                <div class="title">Overdue Aging</div>
-                <div class="muted">Distribution by bucket</div>
-              </div>
-              <div class="aging" id="agingBuckets"></div>
-            </div>
-            <div class="card panel">
-              <div class="panel-head">
-                <div class="title">Top Watchlist</div>
-                <div class="muted">High balance + overdue</div>
-              </div>
-              <table class="table" id="watchlistTable" aria-label="Watchlist">
-                <thead>
-                  <tr>
-                    <th>Customer</th>
-                    <th>Balance</th>
-                    <th>Overdue</th>
-                    <th>Risk</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
             </div>
           </div>
         </section>

@@ -158,57 +158,6 @@ function renderDashboard() {
     });
   }
 
-  // Aging buckets
-  renderAging();
-
-  // Watchlist (sorted by overdue then balance)
-  const watch = clone(state.customers)
-    .map(c => ({ ...c, ...customerTotals(c.id) }))
-    .filter(c => c.overdueAmount > 0)
-    .sort((a, b) => b.overdueAmount - a.overdueAmount)
-    .slice(0, 4);
-  const wlBody = document.querySelector('#watchlistTable tbody');
-  wlBody.innerHTML = '';
-  watch.forEach(c => {
-    const score = riskScore(c.id);
-    const risk = score > 75 ? 'Low' : score > 55 ? 'Medium' : 'High';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${c.name}</td>
-      <td>${fmtMoney(c.balance)}</td>
-      <td>${fmtMoney(c.overdueAmount)}</td>
-      <td><span class="badge ${risk.toLowerCase()}">${risk}</span></td>
-    `;
-    wlBody.appendChild(tr);
-  });
-}
-
-function renderAging() {
-  const buckets = { b7: 0, b30: 0, b30p: 0 };
-  const rows = [];
-  const today = state.today;
-  state.credits.forEach(c => {
-    const due = parseDate(c.dueDate);
-    const days = daysBetween(today, due);
-    if (days <= 0) return;
-    if (days <= 7) buckets.b7 += c.amount;
-    else if (days <= 30) buckets.b30 += c.amount;
-    else buckets.b30p += c.amount;
-    rows.push({ label: `${state.customers.find(x => x.id === c.customerId)?.name || c.customerId}`, days });
-  });
-
-  document.querySelector('#bucket7 .value').textContent = fmtMoney(buckets.b7);
-  document.querySelector('#bucket30 .value').textContent = fmtMoney(buckets.b30);
-  document.querySelector('#bucket30p .value').textContent = fmtMoney(buckets.b30p);
-
-  const aging = document.getElementById('agingBuckets');
-  aging.innerHTML = '';
-  rows.slice(0, 4).forEach(r => {
-    const div = document.createElement('div');
-    div.className = 'bucket';
-    div.innerHTML = `<span>${r.label}</span><span class="badge warning">${r.days} days</span>`;
-    aging.appendChild(div);
-  });
 }
 
 // --- Customers -------------------------------------------------------------
@@ -734,13 +683,6 @@ function setupPaymentForm() {
   });
 }
 
-function setupSimulateDay() {
-  document.getElementById('simulateDay').addEventListener('click', () => {
-    state.today = addDays(state.today, 1);
-    renderAll();
-  });
-}
-
 function setupReset() {
   const resetBtn = document.getElementById('btnReset');
   if (!resetBtn) return;
@@ -978,7 +920,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCustomerForm();
   setupCreditForm();
   setupPaymentForm();
-  setupSimulateDay();
   setupReset();
   renderAll();
 });
