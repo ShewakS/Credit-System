@@ -274,31 +274,10 @@ function renderOverdue() {
   document.querySelector('#bucket30p .value').textContent = fmtMoney(buckets.b30p);
 }
 
-// --- Reminders -------------------------------------------------------------
+// --- Reminders (Removed) ---------------------------------------------------
 function renderReminders() {
-  const tbody = document.querySelector('#reminderTable tbody');
-  tbody.innerHTML = '';
-  state.reminders.forEach(r => {
-    const cust = state.customers.find(c => c.id === r.customerId);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${cust?.name || r.customerId}</td>
-      <td>${r.last}</td>
-      <td>${r.count}</td>
-      <td>${r.next}</td>
-      <td><span class="tag ${r.status === 'Sent' ? 'green' : 'yellow'}">${r.status}</span></td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  const history = document.getElementById('reminderHistory');
-  history.innerHTML = '';
-  state.reminders.slice(0, 5).forEach(r => {
-    const cust = state.customers.find(c => c.id === r.customerId);
-    const li = document.createElement('li');
-    li.textContent = `${r.last}: Reminder ${r.status} for ${cust?.name || r.customerId}`;
-    history.appendChild(li);
-  });
+  // Reminders section has been removed from UI
+  return;
 }
 
 // --- Analytics Charts ------
